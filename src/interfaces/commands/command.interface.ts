@@ -1,1 +1,3 @@
-export interface ICommand {}
+export interface ICommand<R = unknown> {
+  $result?: R;
+}
