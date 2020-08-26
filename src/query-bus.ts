@@ -16,14 +16,17 @@ import { ObservableBus } from './utils/observable-bus';
 
 export type QueryHandlerType<
   QueryBase extends IQuery = IQuery,
-  QueryResultBase extends IQueryResult = IQueryResult
+  QueryResultBase extends IQueryResult<QueryBase> = IQueryResult<QueryBase>
 > = Type<IQueryHandler<QueryBase, QueryResultBase>>;
 
 @Injectable()
 export class QueryBus<QueryBase extends IQuery = IQuery>
   extends ObservableBus<QueryBase>
   implements IQueryBus<QueryBase> {
-  private handlers = new Map<string, IQueryHandler<QueryBase, IQueryResult>>();
+  private handlers = new Map<
+    string,
+    IQueryHandler<QueryBase, IQueryResult<QueryBase>>
+  >();
   private _publisher: IQueryPublisher<QueryBase>;
 
   constructor(private readonly moduleRef: ModuleRef) {
@@ -39,9 +42,10 @@ export class QueryBus<QueryBase extends IQuery = IQuery>
     this._publisher = _publisher;
   }
 
-  async execute<T extends QueryBase, TResult = any>(
-    query: T,
-  ): Promise<TResult> {
+  async execute<
+    T extends QueryBase,
+    TResult extends IQueryResult<T> = IQueryResult<T>
+  >(query: T): Promise<TResult> {
     const queryName = this.getQueryName((query as any) as Function);
     const handler = this.handlers.get(queryName);
     if (!handler) {
@@ -53,7 +57,7 @@ export class QueryBus<QueryBase extends IQuery = IQuery>
     return result as TResult;
   }
 
-  bind<T extends QueryBase, TResult = any>(
+  bind<T extends QueryBase, TResult extends IQueryResult<T> = IQueryResult<T>>(
     handler: IQueryHandler<T, TResult>,
     name: string,
   ) {
@@ -73,7 +77,7 @@ export class QueryBus<QueryBase extends IQuery = IQuery>
     if (!target) {
       throw new InvalidQueryHandlerException();
     }
-    this.bind(instance as IQueryHandler<QueryBase, IQueryResult>, target.name);
+    this.bind(instance, target.name);
   }
 
   private getQueryName(query: Function): string {
